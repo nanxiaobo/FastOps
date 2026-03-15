@@ -2,7 +2,7 @@ import os
 
 from pydantic_settings import BaseSettings
 
-root_path = "frontend"
+root_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend")
 
 
 class Settings(BaseSettings):
