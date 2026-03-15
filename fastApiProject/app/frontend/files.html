@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+    <meta charset="utf-8">
+    <title>Ops Platform</title>
+</head>
+
+<body>
+
+<h2>文件上传</h2>
+
+<input type="file" id="fileInput">
+<button onclick="uploadFile()">上传</button>
+
+<hr>
+
+<h2>文件列表</h2>
+
+<button onclick="loadFiles()">刷新列表</button>
+
+<ul id="fileList"></ul>
+
+<script>
+
+const API = "http://0.0.0.0:8000"
+
+async function uploadFile() {
+    const fileInput = document.getElementById("fileInput")
+    const file = fileInput.files[0]
+
+    if (!file) {
+        alert("请选择文件")
+        return
+    }
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const res = await fetch(API + "/files/upload", {
+        method: "POST",
+        body: formData
+    })
+
+    const data = await res.json()
+
+    console.log("status:", res.status)
+    console.log("data:", data)
+
+    alert(JSON.stringify(data))
+
+    loadFiles()
+}
+
+
+async function loadFiles() {
+
+    const res = await fetch(API + "/files/list")
+    const data = await res.json()
+
+    const list = document.getElementById("fileList")
+
+    list.innerHTML = ""
+
+    data.files.forEach(file => {
+
+        const li = document.createElement("li")
+
+        li.innerHTML =
+            file.filename +
+            " (" + file.size + " bytes) " +
+            `<button onclick="downloadFile('${file.filename}')">下载</button>` +
+            `<button onclick="deleteFile('${file.filename}')">删除</button>`
+
+        list.appendChild(li)
+    })
+}
+
+
+function downloadFile(name) {
+    window.open(API + "/files/download/" + name)
+}
+
+
+async function deleteFile(name) {
+
+    await fetch(API + "/files/" + name, {
+        method: "DELETE"
+    })
+
+    loadFiles()
+}
+
+</script>
+
+</body>
+</html>
