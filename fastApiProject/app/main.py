@@ -21,8 +21,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-root_path = "frontend"
-root_path_file = os.path.join(root_path, "files.html")
+
+root_path_file = os.path.join(settings.root_path, "files.html")
+
+
 @app.get("/files", response_class=HTMLResponse)
 async def root():
     with open(root_path_file, "r", encoding="utf-8") as f:
