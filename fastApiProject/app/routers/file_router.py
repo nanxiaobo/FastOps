@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter, UploadFile, File
+from app.services import file_service
 from starlette.responses import FileResponse
 
 router = APIRouter()
@@ -6,7 +7,8 @@ router = APIRouter()
 
 @router.post('/files/upload')
 async def file_router(file: UploadFile = File(...)):
-    return {'message': "success",
+    result = await file_service.upload_file(file)
+    return {'message': result,
             'file': file.filename,
             'size': file.size}
 
