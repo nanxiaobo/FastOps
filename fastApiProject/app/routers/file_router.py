@@ -7,15 +7,21 @@ from starlette.responses import FileResponse
 
 router = APIRouter()
 
+@router.get("/")
+async def get_root():
+    return FileResponse(os.path.join(settings.root_path, "index.html"))
 
 @router.post('/files/upload')
 async def file_router(file: UploadFile = File(...)):
     result = await file_service.upload_file(file)
     return {'message': result,
-            'file': file.filename,
+            'filename': file.filename,
             'size': file.size}
 
+@router.get('/files/list')
+async def get_files():
+    result = await file_service.get_file_list()
+    return {'files': result}
 
-@router.get("/")
-async def get_root():
-    return FileResponse(os.path.join(settings.root_path, "index.html"))
+
+
