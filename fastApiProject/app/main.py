@@ -1,3 +1,6 @@
+import os
+import sys
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
@@ -18,10 +21,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+root_path = "frontend"
+root_path_file = os.path.join(root_path, "files.html")
 @app.get("/files", response_class=HTMLResponse)
 async def root():
-    with open("frontend/files.html", "r", encoding="utf-8") as f:
+    with open(root_path_file, "r", encoding="utf-8") as f:
         return f.read()
 
 
