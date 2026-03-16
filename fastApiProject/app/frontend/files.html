@@ -76,7 +76,7 @@ function downloadFile(name) {
 
 async function deleteFile(name) {
 
-    await fetch(API + "/files/" + name, {
+    await fetch(API + "/files/delete/" + name, {
         method: "DELETE"
     })
 

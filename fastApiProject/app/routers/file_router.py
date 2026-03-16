@@ -27,3 +27,9 @@ async def get_files():
 async def get_file(filename: str):
     file_path = os.path.join(settings.upload_dir, filename)
     return FileResponse(file_path,filename=filename, media_type="application/octet-stream")
+
+@router.delete('/files/delete/{filename}')
+async def delete_file(filename: str):
+    result =  await file_service.delete_file(filename)
+    return {'message': "success",
+            'filename': result}

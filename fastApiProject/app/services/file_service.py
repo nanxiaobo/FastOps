@@ -30,6 +30,9 @@ async def get_file_list():
             )
     return file_list
 
-async def download_file(filename):
+
+
+async def delete_file(filename):
     file_path = os.path.join(settings.upload_dir, filename)
-    return file_path
+    os.remove(file_path)
+    return {"delete_filename": filename}
