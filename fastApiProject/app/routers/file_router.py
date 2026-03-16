@@ -3,7 +3,7 @@ import os.path
 from fastapi import FastAPI, APIRouter, UploadFile, File
 from app.services import file_service
 from app.core.config import settings
-from starlette.responses import FileResponse
+from fastapi.responses import FileResponse
 
 router = APIRouter()
 
@@ -23,5 +23,7 @@ async def get_files():
     result = await file_service.get_file_list()
     return {'files': result}
 
-
-
+@router.get('/files/download/{filename}')
+async def get_file(filename: str):
+    file_path = os.path.join(settings.upload_dir, filename)
+    return FileResponse(file_path,filename=filename, media_type="application/octet-stream")

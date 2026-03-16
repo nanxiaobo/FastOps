@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers import router
 
-app = FastAPI(tittle=settings.app_name,
+app = FastAPI(title=settings.app_name,
               version=settings.app_version)
 
 router.create_router(app)

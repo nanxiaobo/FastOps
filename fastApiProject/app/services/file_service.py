@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+from fastapi.responses import FileResponse
 from fastapi import HTTPException, File, UploadFile
 from app.core.config import settings
 
@@ -30,3 +30,6 @@ async def get_file_list():
             )
     return file_list
 
+async def download_file(filename):
+    file_path = os.path.join(settings.upload_dir, filename)
+    return file_path
