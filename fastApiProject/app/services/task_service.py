@@ -1,5 +1,7 @@
 import uuid  #用于生成唯一id
 import subprocess  #用于执行shell命令
+from datetime import datetime
+
 from apscheduler.triggers.cron import CronTrigger  #CronTrigger 用来根据 cron 表达式创建定时触发器
 from app.core.scheduler import scheduler
 
@@ -24,7 +26,26 @@ async def run_command(task_id: str, command: str):
 
 async def create_task(task_name:str, command:str, cron:str):
     task_id = str(uuid.uuid4())
-    cron_parts = cron.split()
+    if cron == "now":   #立即执行
+        scheduler.add_job(
+            func=run_command,
+            args=[task_id, command],
+            trigger="date",
+            run_date=datetime.now(),
+            id=task_id,
+            name=task_name,
+            replace_existing=True
+        )
+        task_data = {
+            "task_id": task_id,
+            "task_name": task_name,
+            "command": command,
+            "cron": cron
+        }
+        task_store.append(task_data)
+        return {"message": "Create task success!", "data": task_data}
+
+    cron_parts = cron.split()  #定时任务
     if len(cron_parts) != 5:
         return {"error":"cron表达式应该有5段！"}
     trigger = CronTrigger(
