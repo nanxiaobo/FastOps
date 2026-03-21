@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("/")
 async def get_root():
-    return FileResponse(os.path.join(settings.root_path, "index.html"))
+    return FileResponse(os.path.join(settings.html_path, "index.html"))
 
 @router.post('/files/upload')
 async def file_router(file: UploadFile = File(...)):
@@ -30,6 +30,6 @@ async def get_file(filename: str):
 
 @router.delete('/files/delete/{filename}')
 async def delete_file(filename: str):
-    result =  await file_service.delete_file(filename)
+    result = await file_service.delete_file(filename)
     return {'message': "success",
             'filename': result}

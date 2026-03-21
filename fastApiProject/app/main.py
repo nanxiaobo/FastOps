@@ -23,18 +23,18 @@ app.add_middleware(
 
 start_scheduler()
 
-root_path_file = os.path.join(settings.html_path, "files.html")
+html_path_file = os.path.join(settings.html_path, "files.html")
 @app.get("/files", response_class=HTMLResponse)
 async def root():
-    with open(root_path_file, "r", encoding="utf-8") as f:
+    with open(html_path_file, "r", encoding="utf-8") as f:
         return f.read()
 
-root_path_task = os.path.join(settings.html_path, "task.html")
+html_path_task = os.path.join(settings.html_path, "task.html")
 @app.get("/tasks", response_class=HTMLResponse)
 async def root():
-    with open(root_path_task, "r", encoding="utf-8") as f:
+    with open(html_path_task, "r", encoding="utf-8") as f:
         return f.read()
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
