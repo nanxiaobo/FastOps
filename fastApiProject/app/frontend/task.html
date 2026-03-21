@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>任务调度页面</title>
+</head>
+<body>
+
+<h1>任务调度管理</h1>
+
+<h2>创建任务</h2>
+<div>
+    <label>任务名称：</label><br>
+    <input type="text" id="task_name">
+</div>
+
+<br>
+
+<div>
+    <label>执行命令：</label><br>
+    <input type="text" id="command">
+</div>
+
+<br>
+
+<div>
+    <label>Cron 表达式：</label><br>
+    <input type="text" id="cron">
+</div>
+
+<br>
+
+<button type="button" onclick="createTask()">创建任务</button>
+
+<hr>
+
+<h2>任务列表</h2>
+<button type="button" onclick="loadTasks()">刷新任务列表</button>
+
+<p id="task_total"></p>
+
+<ul id="task_list"></ul>
+
+<hr>
+
+<h2>接口返回结果</h2>
+<pre id="result_box"></pre>
+
+<script>
+    async function createTask() {
+        const taskName = document.getElementById("task_name").value;
+        const command = document.getElementById("command").value;
+        const cron = document.getElementById("cron").value;
+
+        if (!taskName || !command || !cron) {
+            alert("请把任务名称、命令、cron 表达式都填完整");
+            return;
+        }
+
+        const res = await fetch("/task", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                task_name: taskName,
+                command: command,
+                cron: cron
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+            alert("创建任务失败：" + data.error);
+            document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+            return;
+        }
+
+        alert(data.message || "创建成功");
+        document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+
+        loadTasks();
+    }
+
+    async function loadTasks() {
+        const res = await fetch("/task", {
+            method: "GET"
+        });
+
+        const data = await res.json();
+
+        document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+        document.getElementById("task_total").innerText = "任务总数：" + data.total;
+
+        const taskList = document.getElementById("task_list");
+        taskList.innerHTML = "";
+
+        data.data.forEach(task => {
+            const li = document.createElement("li");
+
+            li.innerHTML =
+                "任务ID：" + task.task_id +
+                " | 任务名称：" + task.task_name +
+                " | 命令：" + task.command +
+                " | cron：" + task.cron +
+                ' <button onclick="runTask(\'' + task.task_id + '\')">立即执行</button>' +
+                ' <button onclick="deleteTask(\'' + task.task_id + '\')">删除</button>';
+
+            taskList.appendChild(li);
+        });
+    }
+
+    async function deleteTask(taskId) {
+        const res = await fetch("/task/" + taskId, {
+            method: "DELETE"
+        });
+
+        const data = await res.json();
+
+        document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+
+        loadTasks();
+    }
+
+    async function runTask(taskId) {
+        const res = await fetch("/task/" + taskId + "/run", {
+            method: "POST"
+        });
+
+        const data = await res.json();
+
+        document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+    }
+
+    loadTasks();
+</script>
+
+</body>
+</html>

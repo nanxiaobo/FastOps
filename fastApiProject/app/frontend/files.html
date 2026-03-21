@@ -19,6 +19,19 @@
 <button onclick="loadFiles()">显示文件列表</button>
 
 <ul id="fileList"></ul>
+<hr>
+<h2>翻译工具</h2>
+    <label for="text">请输入内容：</label><br>
+    <textarea id="text" rows="3" cols="60"></textarea><br>
+    <label for="target_lang">请选择目标语言：</label>
+    <select id="target_lang">
+        <option value="zh-cn">中文</option>
+        <option value="en">英文</option>
+    </select><br>
+<button type="button" onclick="translateText()" style="font-size:20px; padding:10px 20px;">翻译</button>
+<h3>翻译结果：</h3>
+<p id="translated_text"></p>
+
 
 <script>
 
@@ -81,6 +94,25 @@ async function deleteFile(name) {
     })
 
     loadFiles()
+}
+
+async function translateText() {
+    const text = document.getElementById("text").value;
+    const targetLang = document.getElementById("target_lang").value;
+
+    const formData = new FormData();
+    formData.append("text", text);
+    formData.append("target_lang", targetLang);
+
+    const res = await fetch("/translate", {
+        method: "POST",
+        body: formData
+    });
+
+    const data = await res.json();
+
+    console.log(data);
+    document.getElementById("translated_text").innerText = data.translated_text;
 }
 
 </script>
