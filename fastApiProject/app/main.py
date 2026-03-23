@@ -35,6 +35,17 @@ async def root():
     with open(html_path_task, "r", encoding="utf-8") as f:
         return f.read()
 
+html_path_command = os.path.join(settings.html_path, "command.html")
+@app.get("/commands", response_class=HTMLResponse)
+async def root():
+    with open(html_path_command, "r", encoding="utf-8") as f:
+        return f.read()
+
+html_path_stress = os.path.join(settings.html_path, "stress.html")
+@app.get("/stress", response_class=HTMLResponse)
+async def root():
+    with open(html_path_stress, "r", encoding="utf-8") as f:
+        return f.read()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8001)

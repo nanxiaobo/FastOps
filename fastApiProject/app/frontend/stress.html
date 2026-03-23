@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>API压测页面</title>
+</head>
+<body>
+    <h1>API压测页面</h1>
+
+    <hr>
+
+    <h2>1. 发起压测</h2>
+    <form id="stressForm">
+        <div>
+            <label>任务名称：</label>
+            <input type="text" id="name" required>
+        </div>
+        <br>
+
+        <div>
+            <label>请求方法：</label>
+            <select id="method" required>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+            </select>
+        </div>
+        <br>
+
+        <div>
+            <label>请求地址：</label>
+            <input type="text" id="url" required>
+        </div>
+        <br>
+
+        <div>
+            <label>并发数：</label>
+            <input type="number" id="concurrency" required>
+        </div>
+        <br>
+
+        <div>
+            <label>总请求数：</label>
+            <input type="number" id="total" required>
+        </div>
+        <br>
+
+        <button type="submit">开始压测</button>
+    </form>
+
+    <h3>压测结果</h3>
+    <pre id="stressResult"></pre>
+
+    <hr>
+
+    <h2>2. 压测历史</h2>
+    <button onclick="loadHistory()">刷新历史记录</button>
+    <ul id="historyList"></ul>
+
+    <script>
+        const API_BASE = "";
+
+        document.getElementById("stressForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const bodyData = {
+                name: document.getElementById("name").value,
+                method: document.getElementById("method").value,
+                url: document.getElementById("url").value,
+                concurrent: Number(document.getElementById("concurrency").value),
+                total: Number(document.getElementById("total").value)
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/stress_run`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+
+                const data = await response.json();
+
+                document.getElementById("stressResult").textContent =
+                    JSON.stringify(data, null, 4);
+
+                loadHistory();
+            } catch (error) {
+                document.getElementById("stressResult").textContent =
+                    "压测失败：" + error;
+            }
+        });
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_BASE}/stress_history`);
+                const data = await response.json();
+
+                const historyList = document.getElementById("historyList");
+                historyList.innerHTML = "";
+
+                if (!data.stress_list || data.stress_list.length === 0) {
+                    const li = document.createElement("li");
+                    li.textContent = "暂无压测记录";
+                    historyList.appendChild(li);
+                    return;
+                }
+
+                data.stress_list.forEach(item => {
+                    const li = document.createElement("li");
+
+                    li.textContent =
+                        `ID: ${item.id} | 名称: ${item.name} | 方法: ${item.method} | 地址: ${item.url} | 并发数: ${item.concurrency} | 总请求数: ${item.total}`;
+
+                    const btn = document.createElement("button");
+                    btn.textContent = "查看摘要";
+                    btn.onclick = () => showSummary(item);
+
+                    li.appendChild(document.createTextNode(" "));
+                    li.appendChild(btn);
+
+                    historyList.appendChild(li);
+                });
+            } catch (error) {
+                const historyList = document.getElementById("historyList");
+                historyList.innerHTML = `<li>加载历史失败：${error}</li>`;
+            }
+        }
+
+        function showSummary(item) {
+            alert(
+                "压测摘要：\n" +
+                "任务名称：" + item.name + "\n" +
+                "请求方法：" + item.method + "\n" +
+                "请求地址：" + item.url + "\n" +
+                "并发数：" + item.concurrency + "\n" +
+                "总请求数：" + item.total + "\n" +
+                "总次数：" + item.summery.total + "\n" +
+                "成功次数：" + item.summery.success_count + "\n" +
+                "失败次数：" + item.summery.fail_count + "\n" +
+                "平均耗时：" + item.summery.avg_time + "\n" +
+                "最大耗时：" + item.summery.max_time + "\n" +
+                "最小耗时：" + item.summery.min_time
+            );
+        }
+
+        window.onload = function () {
+            loadHistory();
+        };
+    </script>
+</body>
+</html>

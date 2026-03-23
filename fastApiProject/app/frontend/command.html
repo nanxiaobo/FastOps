@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>远程命令执行管理页面</title>
+</head>
+<body>
+<a href="/">点击跳转到首页</a><br>
+<a href="/files">点击跳转到files</a><br>
+<a href="/tasks">点击跳转到tasks</a><br>
+
+    <h1>远程命令执行管理页面</h1>
+
+    <hr>
+
+    <h2>1. 添加服务器</h2>
+    <form id="addServerForm">
+        <div>
+            <label>服务器名称：</label>
+            <input type="text" id="name" required value="host01">
+        </div>
+        <br>
+
+        <div>
+            <label>主机地址：</label>
+            <input type="text" id="host" required>
+        </div>
+        <br>
+
+        <div>
+            <label>端口：</label>
+            <input type="number" id="port" required value=22>
+        </div>
+        <br>
+
+        <div>
+            <label>用户名：</label>
+            <input type="text" id="username" required value="admin">
+        </div>
+        <br>
+
+        <div>
+            <label>密码：</label>
+            <input type="password" id="password" required>
+        </div>
+        <br>
+
+        <button type="submit">添加服务器</button>
+    </form>
+
+    <hr>
+
+    <h2>2. 服务器列表</h2>
+    <button onclick="loadServers()">刷新服务器列表</button>
+    <ul id="serverList"></ul>
+
+    <hr>
+
+    <h2>3. 执行命令</h2>
+    <form id="runCommandForm">
+        <div>
+            <label>服务器 ID：</label>
+            <input type="text" id="runServerId" required>
+        </div>
+        <br>
+
+        <div>
+            <label>命令：</label>
+            <input type="text" id="command" required>
+        </div>
+        <br>
+
+        <button type="submit">执行命令</button>
+    </form>
+
+    <h3>命令执行结果</h3>
+    <pre id="commandResult"></pre>
+
+    <hr>
+
+    <h3>删除结果</h3>
+    <pre id="deleteResult"></pre>
+
+    <script>
+        // 这里改成你的后端地址
+        const API_BASE = "";
+
+        // 页面加载时自动拉取服务器列表
+        window.onload = function () {
+            loadServers();
+        };
+
+        // 获取服务器列表
+        async function loadServers() {
+            try {
+                const response = await fetch(`${API_BASE}/command`);
+                const data = await response.json();
+
+                const serverList = document.getElementById("serverList");
+                serverList.innerHTML = "";
+
+                if (!data.servers || data.servers.length === 0) {
+                    const li = document.createElement("li");
+                    li.textContent = "当前没有服务器";
+                    serverList.appendChild(li);
+                    return;
+                }
+
+                data.servers.forEach(server => {
+                const li = document.createElement("li");
+
+                // 文本部分
+                const text = document.createTextNode(
+                `ID: ${server.id} | 名称: ${server.name} | 主机: ${server.host} | 端口: ${server.port} | 用户名: ${server.username} `
+                );
+
+                // 复制按钮
+                const copyBtn = document.createElement("button");
+                copyBtn.textContent = "复制ID";
+                copyBtn.onclick = () => copyId(server.id);
+
+                // 删除按钮
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "删除";
+                deleteBtn.onclick = () => deleteServer(server.id);
+
+                li.appendChild(text);
+                li.appendChild(copyBtn);
+                li.appendChild(deleteBtn);
+
+                serverList.appendChild(li);
+                });
+            } catch (error) {
+                alert("获取服务器列表失败：" + error);
+            }
+        }
+
+        // 添加服务器
+        document.getElementById("addServerForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const bodyData = {
+                name: document.getElementById("name").value,
+                host: document.getElementById("host").value,
+                port: Number(document.getElementById("port").value),
+                username: document.getElementById("username").value,
+                password: document.getElementById("password").value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/command`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+
+                const data = await response.json();
+                alert(data.message || "添加成功");
+
+                // 清空表单
+                document.getElementById("addServerForm").reset();
+
+                // 刷新列表
+                loadServers();
+            } catch (error) {
+                alert("添加服务器失败：" + error);
+            }
+        });
+
+        // 执行命令
+        document.getElementById("runCommandForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const bodyData = {
+                server_id: document.getElementById("runServerId").value,
+                command: document.getElementById("command").value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/command/run`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(bodyData)
+                });
+
+                const data = await response.json();
+
+                document.getElementById("commandResult").textContent =
+                    JSON.stringify(data, null, 4);
+            } catch (error) {
+                document.getElementById("commandResult").textContent =
+                    "执行命令失败：" + error;
+            }
+        });
+
+        function copyId(id) {
+    navigator.clipboard.writeText(id);
+
+    // 自动填充输入框
+    document.getElementById("runServerId").value = id;
+
+    alert("已复制并填充ID");
+        }
+
+    async function deleteServer(serverId) {
+    if (!confirm("确定删除这个服务器吗？")) return;
+
+    try {
+        const res = await fetch(`/command/${serverId}`, {
+            method: "DELETE"
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert("删除失败：" + JSON.stringify(data, null, 2));
+            return;
+        }
+        alert("删除成功：\n" + JSON.stringify(data, null, 2));
+
+        // 刷新列表
+        loadServers();
+
+    } catch (err) {
+        alert("请求失败：" + err);
+    }
+}
+
+    </script>
+</body>
+</html>
