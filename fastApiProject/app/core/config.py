@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///test.db"
     upload_dir: str = upload_dir
     html_path: str = html_path
+    task_admin_token: str = "change-this-token-123456"   #任务调度的管理员口令
 
 
 settings = Settings()

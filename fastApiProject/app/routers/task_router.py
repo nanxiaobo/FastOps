@@ -1,9 +1,23 @@
-from fastapi import APIRouter
+import secrets
+
+from fastapi import APIRouter, Header, HTTPException
+
+from app.core.config import settings
 from app.schemas.task_scheam import TaskSchema
 from app.services import task_service
 
 
 router = APIRouter()
+
+def verify_task_token(x_admin_token: str = Header(default="")):
+    """
+    校验请求头里的 X-Admin-Token
+    """
+    if not settings.task_admin_token:
+        raise HTTPException(status_code=500, detail="服务端未配置 TASK_ADMIN_TOKEN")
+
+    if not secrets.compare_digest(x_admin_token, settings.task_admin_token):
+        raise HTTPException(status_code=401, detail="没有权限执行该操作")
 
 @router.get("/task")
 async def get_tasks():

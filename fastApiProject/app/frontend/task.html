@@ -10,7 +10,11 @@
 <a href="/commands">点击跳转到tasks</a><br>
 <a href="/stress">点击跳转到stress</a><br>
 <h1>任务调度管理</h1>
-
+<h2>管理员验证</h2>
+<div>
+    <label>管理员口令：</label><br>
+    <input type="password" id="admin_token" placeholder="请输入管理员口令">
+</div>
 <h2>创建任务</h2>
 <div>
     <label>任务名称：</label><br>
@@ -86,48 +90,54 @@
 <pre id="result_box"></pre>
 
 <script>
-    async function createTask() {
-    const taskName = document.getElementById("task_name").value;
-    const command = document.getElementById("command").value;
-    const cron = document.getElementById("cron").value;
+        async function createTask() {
+        const taskName = document.getElementById("task_name").value;
+        const command = document.getElementById("command").value;
+        const cron = document.getElementById("cron").value;
 
-    if (!taskName || !command || !cron) {
-        alert("请把任务名称、命令、cron 表达式都填完整");
-        return;
-    }
+        if (!taskName || !command || !cron) {
+            alert("请把任务名称、命令、cron 表达式都填完整");
+            return;
+        }
 
-    const res = await fetch("/task", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            task_name: taskName,
-            command: command,
-            cron: cron
-        })
-    });
-
-    const data = await res.json();
-
-    if (data.error) {
-        alert("创建任务失败：" + data.error);
-        document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
-        return;
-    }
-
-    alert(data.message || "创建成功");
-    document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
-
-    loadTasks();
-}
-
-    async function loadTasks() {
         const res = await fetch("/task", {
-            method: "GET"
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                task_name: taskName,
+                command: command,
+                cron: cron
+            })
         });
 
         const data = await res.json();
+
+        if (!res.ok) {
+            alert(data.detail || data.error || "请求失败");
+            document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+            return;
+        }
+
+        alert(data.message || "创建成功");
+        document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+
+        loadTasks();
+    }
+
+        async function loadTasks() {
+        const res = await fetch("/task", {
+            method: "GET",
+            headers: {
+                "X-Admin-Token": document.getElementById("admin_token").value.trim()
+            }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
+            return;
+        }
 
         document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
         document.getElementById("task_total").innerText = "任务总数：" + data.total;
@@ -150,25 +160,29 @@
         });
     }
 
-    async function deleteTask(taskId) {
+        async function deleteTask(taskId) {
         const res = await fetch("/task/" + taskId, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+                "X-Admin-Token": document.getElementById("admin_token").value.trim()
+            }
         });
 
         const data = await res.json();
-
         document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
 
         loadTasks();
     }
 
-    async function runTask(taskId) {
+        async function runTask(taskId) {
         const res = await fetch("/task/" + taskId + "/run", {
-            method: "POST"
+            method: "POST",
+            headers: {
+                "X-Admin-Token": document.getElementById("admin_token").value.trim()
+            }
         });
 
         const data = await res.json();
-
         document.getElementById("result_box").innerText = JSON.stringify(data, null, 2);
     }
 
@@ -208,7 +222,19 @@
 }
 
         updateCron();
+    function getAuthHeaders() {
+        const token = document.getElementById("admin_token").value.trim();
 
+        if (!token) {
+            alert("请输入管理员口令");
+            throw new Error("缺少管理员口令");
+        }
+
+        return {
+            "Content-Type": "application/json",
+            "X-Admin-Token": token
+        };
+    }
 </script>
 
 </body>
