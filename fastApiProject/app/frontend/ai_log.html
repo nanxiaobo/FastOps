@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI日志分析</title>
+</head>
+<body>
+    <h2>AI日志分析</h2>
+
+    <div>
+        <label>选择日志文件：</label>
+        <select id="filename"></select>
+        <button onclick="loadLogFiles()">刷新文件列表</button>
+    </div>
+
+    <br>
+
+    <button onclick="extractLog()" id="extractBtn">提取关键日志</button>
+    <button onclick="analyzeLog()" id="analyzeBtn">AI分析日志</button>
+
+    <br><br>
+
+    <div>
+        <label>日志提问：</label>
+        <input type="text" id="question" placeholder="请输入你的问题" style="width: 400px;">
+        <button onclick="askLog()">提问</button>
+    </div>
+
+    <br>
+
+    <h3>结果：</h3>
+    <pre id="result"></pre>
+
+    <script>
+        const API = "";
+
+        async function extractLog() {
+            const filename = document.getElementById("filename").value;
+            const res = await fetch(API + "/ai/log/extract", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({filename})
+            });
+            const data = await res.json();
+            document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+        }
+
+        let loadingTimer = null;
+
+function startLoading(resultBox) {
+    let dots = 0;
+    loadingTimer = setInterval(() => {
+        dots = (dots + 1) % 4;
+        resultBox.textContent = "正在分析日志，请稍候" + ".".repeat(dots);
+    }, 500);
+}
+
+function stopLoading() {
+    if (loadingTimer) {
+        clearInterval(loadingTimer);
+        loadingTimer = null;
+    }
+}
+
+async function analyzeLog() {
+    const filename = document.getElementById("filename").value;
+    const resultBox = document.getElementById("result");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+
+    if (!filename) {
+        alert("请输入日志文件名");
+        return;
+    }
+
+    try {
+        analyzeBtn.disabled = true;
+        analyzeBtn.innerText = "分析中...";
+        startLoading(resultBox);
+
+        const res = await fetch("/ai/log/analyze", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ filename })
+        });
+
+        const data = await res.json();
+        stopLoading();
+        resultBox.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+        stopLoading();
+        resultBox.textContent = "分析失败：" + error;
+    } finally {
+        analyzeBtn.disabled = false;
+        analyzeBtn.innerText = "AI分析日志";
+    }
+}
+
+        async function askLog() {
+            const filename = document.getElementById("filename").value;
+            const question = document.getElementById("question").value;
+            const res = await fetch(API + "/ai/log/ask", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({filename, question})
+            });
+            const data = await res.json();
+            document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+        }
+        async function loadLogFiles() {
+    const select = document.getElementById("filename");
+
+    try {
+        const res = await fetch("/files/list");
+        const data = await res.json();
+
+        select.innerHTML = "";
+
+        if (!data.files || data.files.length === 0) {
+            const option = document.createElement("option");
+            option.value = "";
+            option.textContent = "当前没有可选日志文件";
+            select.appendChild(option);
+            return;
+        }
+
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "请选择日志文件";
+        select.appendChild(defaultOption);
+
+        data.files.forEach(file => {
+            const option = document.createElement("option");
+            option.value = file.filename;
+            option.textContent = `${file.filename} (${file.size} bytes)`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        select.innerHTML = "";
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = "加载文件列表失败";
+        select.appendChild(option);
+    }
+}
+    window.onload = function () {
+    loadLogFiles();
+}
+    </script>
+</body>
+</html>

@@ -47,5 +47,14 @@ async def root():
     with open(html_path_stress, "r", encoding="utf-8") as f:
         return f.read()
 
+html_path_ai_log = os.path.join(settings.html_path, "ai_log.html")
+@app.get("/ai-log", response_class=HTMLResponse)
+async def ai_log_page():
+    with open(html_path_ai_log, "r", encoding="utf-8") as f:
+        return f.read()
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8001)
+
+

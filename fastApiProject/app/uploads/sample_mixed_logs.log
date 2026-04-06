@@ -1,0 +1,41 @@
+# ===== app.log =====
+2026-03-29 09:14:21,103 INFO  [app.main] Application startup complete
+2026-03-29 09:14:25,487 INFO  [app.auth] User login success username=admin ip=10.10.2.15
+2026-03-29 09:15:02,901 INFO  [app.task] Create scheduled task task_id=task_001 cron=*/5 * * * *
+2026-03-29 09:15:33,224 WARNING [app.command] Command execution timeout command="ping 10.10.1.8 -n 20"
+2026-03-29 09:16:10,512 ERROR [app.file] File upload failed filename=report.xlsx reason="disk quota exceeded"
+2026-03-29 09:16:11,004 INFO  [app.file] File upload retry success filename=report.xlsx size=184320
+2026-03-29 09:17:45,226 ERROR [app.log_ai] LLM summary request failed request_id=req_881 latency_ms=12034 code=504
+2026-03-29 09:18:03,019 INFO  [app.log_ai] Fallback rule engine activated request_id=req_881
+2026-03-29 09:18:44,661 WARNING [app.scheduler] Missed job execution job_id=job_backup_01 delay_seconds=87
+2026-03-29 09:19:08,733 INFO  [app.scheduler] Rescheduled job job_id=job_backup_01 next_run=2026-03-29 09:25:00
+
+# ===== nginx_access.log =====
+10.10.2.15 - - [29/Mar/2026:09:14:25 +0800] "POST /api/login HTTP/1.1" 200 512 "-" "Mozilla/5.0"
+10.10.2.21 - - [29/Mar/2026:09:15:08 +0800] "GET /api/files/list HTTP/1.1" 200 1024 "-" "Mozilla/5.0"
+10.10.2.33 - - [29/Mar/2026:09:15:19 +0800] "POST /api/command/execute HTTP/1.1" 504 167 "-" "Mozilla/5.0"
+10.10.2.33 - - [29/Mar/2026:09:15:22 +0800] "POST /api/command/execute HTTP/1.1" 200 428 "-" "Mozilla/5.0"
+10.10.2.41 - - [29/Mar/2026:09:16:10 +0800] "POST /api/files/upload HTTP/1.1" 500 213 "-" "Mozilla/5.0"
+10.10.2.41 - - [29/Mar/2026:09:16:11 +0800] "POST /api/files/upload HTTP/1.1" 200 302 "-" "Mozilla/5.0"
+10.10.2.59 - - [29/Mar/2026:09:17:45 +0800] "POST /api/logs/analyze HTTP/1.1" 504 188 "-" "Mozilla/5.0"
+10.10.2.59 - - [29/Mar/2026:09:18:03 +0800] "POST /api/logs/analyze HTTP/1.1" 200 956 "-" "Mozilla/5.0"
+
+# ===== mysql.log =====
+2026-03-29T09:14:20.883112+08:00 0 [System] [MY-010116] [Server] /usr/sbin/mysqld starting as process 1821
+2026-03-29T09:14:21.552904+08:00 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2026-03-29T09:14:22.913004+08:00 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2026-03-29T09:16:09.112337+08:00 8 [Warning] [MY-010068] [Server] CA certificate ca.pem is self signed.
+2026-03-29T09:16:10.223781+08:00 15 [ERROR] [MY-000067] [Server] Disk is full writing './upload_db/report.ibd' (OS errno 28 - No space left on device)
+2026-03-29T09:16:11.551009+08:00 16 [System] [MY-010951] [Server] Space freed, write operation resumed.
+2026-03-29T09:18:41.882317+08:00 21 [Warning] [MY-010055] [Server] IP address '10.10.2.77' could not be resolved: Name or service not known
+
+# ===== system.log =====
+Mar 29 09:14:18 server-01 systemd[1]: Started FastAPI Ops Platform.
+Mar 29 09:15:33 server-01 kernel: INFO: task uvicorn:2048 blocked for more than 120 seconds.
+Mar 29 09:15:33 server-01 kernel:      Not tainted 5.15.0-101-generic #111-Ubuntu
+Mar 29 09:16:10 server-01 systemd[1]: fastapi.service: Main process exited, code=exited, status=1/FAILURE
+Mar 29 09:16:10 server-01 systemd[1]: fastapi.service: Failed with result 'exit-code'.
+Mar 29 09:16:12 server-01 systemd[1]: fastapi.service: Scheduled restart job, restart counter is at 1.
+Mar 29 09:16:13 server-01 systemd[1]: Started FastAPI Ops Platform.
+Mar 29 09:17:45 server-01 uvicorn[2198]: ERROR: upstream request timeout while calling /api/logs/analyze
+Mar 29 09:18:03 server-01 uvicorn[2198]: INFO: fallback analysis completed for request_id=req_881
