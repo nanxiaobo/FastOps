@@ -5,12 +5,23 @@
     <title>AI日志分析</title>
 </head>
 <body>
+    <h2>AI日志分析</h2>
 <a href="/">点击跳转到首页</a><br>
 <a href="/files">点击跳转到files</a><br>
 <a href="/tasks">点击跳转到tasks</a><br>
 <a href="/commands">点击跳转到commands</a><br>
 <a href="/stress">点击跳转到stress</a><br>
-    <h2>AI日志分析</h2>
+    <div>
+        <label>管理员 Token：</label>
+        <input
+            type="password"
+            id="adminToken"
+            placeholder="请输入 task_admin_token"
+            style="width: 300px;"
+        >
+    </div>
+
+    <br>
 
     <div>
         <label>选择日志文件：</label>
@@ -27,8 +38,13 @@
 
     <div>
         <label>日志提问：</label>
-        <input type="text" id="question" placeholder="请输入你的问题" style="width: 400px;">
-        <button onclick="askLog()">提问</button>
+        <input
+            type="text"
+            id="question"
+            placeholder="请输入你的问题"
+            style="width: 400px;"
+        >
+        <button onclick="askLog()" id="askBtn">提问</button>
     </div>
 
     <br>
@@ -38,120 +54,204 @@
 
     <script>
         const API = "";
+        let loadingTimer = null;
+
+        function startLoading(resultBox) {
+            let dots = 0;
+            loadingTimer = setInterval(() => {
+                dots = (dots + 1) % 4;
+                resultBox.textContent = "正在分析日志，请稍候" + ".".repeat(dots);
+            }, 500);
+        }
+
+        function stopLoading() {
+            if (loadingTimer) {
+                clearInterval(loadingTimer);
+                loadingTimer = null;
+            }
+        }
+
+        async function handleResponse(res) {
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.detail || JSON.stringify(data));
+            }
+
+            return data;
+        }
+
+        async function loadLogFiles() {
+            const select = document.getElementById("filename");
+
+            try {
+                const res = await fetch(API + "/files/list");
+                const data = await handleResponse(res);
+
+                select.innerHTML = "";
+
+                if (!data.files || data.files.length === 0) {
+                    const option = document.createElement("option");
+                    option.value = "";
+                    option.textContent = "当前没有可选日志文件";
+                    select.appendChild(option);
+                    return;
+                }
+
+                const defaultOption = document.createElement("option");
+                defaultOption.value = "";
+                defaultOption.textContent = "请选择日志文件";
+                select.appendChild(defaultOption);
+
+                data.files.forEach(file => {
+                    const option = document.createElement("option");
+                    option.value = file.filename;
+                    option.textContent = `${file.filename} (${file.size} bytes)`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                select.innerHTML = "";
+                const option = document.createElement("option");
+                option.value = "";
+                option.textContent = "加载文件列表失败：" + error.message;
+                select.appendChild(option);
+            }
+        }
 
         async function extractLog() {
             const filename = document.getElementById("filename").value;
-            const res = await fetch(API + "/ai/log/extract", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({filename})
-            });
-            const data = await res.json();
-            document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+            const adminToken = document.getElementById("adminToken").value;
+            const resultBox = document.getElementById("result");
+            const extractBtn = document.getElementById("extractBtn");
+
+            if (!adminToken) {
+                alert("请输入管理员 Token");
+                return;
+            }
+
+            if (!filename) {
+                alert("请先选择日志文件");
+                return;
+            }
+
+            try {
+                extractBtn.disabled = true;
+                extractBtn.innerText = "提取中...";
+                resultBox.textContent = "正在提取关键日志...";
+
+                const res = await fetch(API + "/ai/log/extract", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Admin-Token": adminToken
+                    },
+                    body: JSON.stringify({ filename: filename })
+                });
+
+                const data = await handleResponse(res);
+                resultBox.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultBox.textContent = "提取失败：" + error.message;
+            } finally {
+                extractBtn.disabled = false;
+                extractBtn.innerText = "提取关键日志";
+            }
         }
 
-        let loadingTimer = null;
+        async function analyzeLog() {
+            const filename = document.getElementById("filename").value;
+            const adminToken = document.getElementById("adminToken").value;
+            const resultBox = document.getElementById("result");
+            const analyzeBtn = document.getElementById("analyzeBtn");
 
-function startLoading(resultBox) {
-    let dots = 0;
-    loadingTimer = setInterval(() => {
-        dots = (dots + 1) % 4;
-        resultBox.textContent = "正在分析日志，请稍候" + ".".repeat(dots);
-    }, 500);
-}
+            if (!adminToken) {
+                alert("请输入管理员 Token");
+                return;
+            }
 
-function stopLoading() {
-    if (loadingTimer) {
-        clearInterval(loadingTimer);
-        loadingTimer = null;
-    }
-}
+            if (!filename) {
+                alert("请先选择日志文件");
+                return;
+            }
 
-async function analyzeLog() {
-    const filename = document.getElementById("filename").value;
-    const resultBox = document.getElementById("result");
-    const analyzeBtn = document.getElementById("analyzeBtn");
+            try {
+                analyzeBtn.disabled = true;
+                analyzeBtn.innerText = "分析中...";
+                startLoading(resultBox);
 
-    if (!filename) {
-        alert("请输入日志文件名");
-        return;
-    }
+                const res = await fetch(API + "/ai/log/analyze", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Admin-Token": adminToken
+                    },
+                    body: JSON.stringify({ filename: filename })
+                });
 
-    try {
-        analyzeBtn.disabled = true;
-        analyzeBtn.innerText = "分析中...";
-        startLoading(resultBox);
-
-        const res = await fetch("/ai/log/analyze", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ filename })
-        });
-
-        const data = await res.json();
-        stopLoading();
-        resultBox.textContent = JSON.stringify(data, null, 2);
-    } catch (error) {
-        stopLoading();
-        resultBox.textContent = "分析失败：" + error;
-    } finally {
-        analyzeBtn.disabled = false;
-        analyzeBtn.innerText = "AI分析日志";
-    }
-}
+                const data = await handleResponse(res);
+                stopLoading();
+                resultBox.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                stopLoading();
+                resultBox.textContent = "分析失败：" + error.message;
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerText = "AI分析日志";
+            }
+        }
 
         async function askLog() {
             const filename = document.getElementById("filename").value;
             const question = document.getElementById("question").value;
-            const res = await fetch(API + "/ai/log/ask", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({filename, question})
-            });
-            const data = await res.json();
-            document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+            const adminToken = document.getElementById("adminToken").value;
+            const resultBox = document.getElementById("result");
+            const askBtn = document.getElementById("askBtn");
+
+            if (!adminToken) {
+                alert("请输入管理员 Token");
+                return;
+            }
+
+            if (!filename) {
+                alert("请先选择日志文件");
+                return;
+            }
+
+            if (!question) {
+                alert("请输入问题");
+                return;
+            }
+
+            try {
+                askBtn.disabled = true;
+                askBtn.innerText = "提问中...";
+                resultBox.textContent = "正在提问，请稍候...";
+
+                const res = await fetch(API + "/ai/log/ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-Admin-Token": adminToken
+                    },
+                    body: JSON.stringify({
+                        filename: filename,
+                        question: question
+                    })
+                });
+
+                const data = await handleResponse(res);
+                resultBox.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                resultBox.textContent = "提问失败：" + error.message;
+            } finally {
+                askBtn.disabled = false;
+                askBtn.innerText = "提问";
+            }
         }
-        async function loadLogFiles() {
-    const select = document.getElementById("filename");
 
-    try {
-        const res = await fetch("/files/list");
-        const data = await res.json();
-
-        select.innerHTML = "";
-
-        if (!data.files || data.files.length === 0) {
-            const option = document.createElement("option");
-            option.value = "";
-            option.textContent = "当前没有可选日志文件";
-            select.appendChild(option);
-            return;
-        }
-
-        const defaultOption = document.createElement("option");
-        defaultOption.value = "";
-        defaultOption.textContent = "请选择日志文件";
-        select.appendChild(defaultOption);
-
-        data.files.forEach(file => {
-            const option = document.createElement("option");
-            option.value = file.filename;
-            option.textContent = `${file.filename} (${file.size} bytes)`;
-            select.appendChild(option);
-        });
-    } catch (error) {
-        select.innerHTML = "";
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = "加载文件列表失败";
-        select.appendChild(option);
-    }
-}
-    window.onload = function () {
-    loadLogFiles();
-}
+        window.onload = function () {
+            loadLogFiles();
+        };
     </script>
 </body>
 </html>
