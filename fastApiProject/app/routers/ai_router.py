@@ -42,3 +42,13 @@ async def extract_log(
     verify_admin_token(x_admin_token)
     result = await ai_log_service.extract_log(request.filename)
     return result
+
+@router.get("/log/history")
+async def get_log_history(x_admin_token: str = Header(default="")):
+    verify_admin_token(x_admin_token)
+    return ai_log_service.get_ai_log_history()
+
+@router.get("/log/history/{history_id}")
+async def get_log_history_detail(history_id: str, x_admin_token: str = Header(default="")):
+    verify_admin_token(x_admin_token)
+    return ai_log_service.get_ai_log_history_detail(history_id)

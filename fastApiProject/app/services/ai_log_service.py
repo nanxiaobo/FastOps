@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-import httpx
+import httpx,time,uuid
 from fastapi import HTTPException
 from app.core.config import settings
 
@@ -8,7 +8,7 @@ ERROR_KEYWORD = [
     "error", "exception", "failed", "traceback",
     "critical", "warning", "timeout", "refused", "denied"
 ]
-
+ai_log_history = []
 def read_log_file(filename: str) -> str:
     file_path = Path(settings.upload_dir) / filename
     if not file_path.exists():
@@ -17,7 +17,7 @@ def read_log_file(filename: str) -> str:
         return f.read()
 
 def extract_key_lines(log_text:str,context: int=2,max_lines:int=200) -> str:
-    lines = log_text.split()
+    lines = log_text.splitlines()
     selected_indexes = set()
 
     for i, line in enumerate(lines):
@@ -103,21 +103,28 @@ async def call_ai(prompt: str):
 async def analyze_log(filename: str):
     raw_text = read_log_file(filename)
     key_text = extract_key_lines(raw_text)
-
     prompt = build_analyze_prompt(key_text)
     ai_result = await call_ai(prompt)
 
     try:
         parsed_result = json.loads(ai_result)
-        return {
-            "filename": filename,
-            "analyze_result": parsed_result
-        }
     except Exception:
-        return {
-            "filename": filename,
-            "analyze_result": ai_result
+        parsed_result = {
+            "raw_result": ai_result
         }
+
+    history_item = {
+        "id": str(uuid.uuid4()),
+        "filename": filename,
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "analyze_result": parsed_result
+    }
+    ai_log_history.append(history_item)
+
+    return {
+        "message": "分析完成",
+        "data": history_item
+    }
 
 
 async def ask_log(filename: str, question: str):
@@ -143,5 +150,18 @@ async def extract_log(filename: str):
         "key_log_content": key_text
     }
 
+def get_ai_log_history():
+    return {
+        "messages": "查询ai分析历史成功！",
+        "total": len(ai_log_history),
+        "history_list": ai_log_history
+    }
 
-
+def get_ai_log_history_detail(history_id: str):
+    for i in ai_log_history:
+        if i["id"] == history_id:
+            return {
+                "message": "success",
+                "data": i
+            }
+    raise HTTPException(status_code=404, detail="history not found")

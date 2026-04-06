@@ -52,6 +52,9 @@
     <h3>结果：</h3>
     <pre id="result"></pre>
 
+    <h3>分析历史</h3>
+    <button onclick="loadHistory()">刷新历史记录</button>
+    <div id="historyList"></div>
     <script>
         const API = "";
         let loadingTimer = null;
@@ -198,6 +201,7 @@
                 analyzeBtn.disabled = false;
                 analyzeBtn.innerText = "AI分析日志";
             }
+            await loadHistory();
         }
 
         async function askLog() {
@@ -248,6 +252,68 @@
                 askBtn.innerText = "提问";
             }
         }
+
+        async function loadHistory() {
+    const adminToken = document.getElementById("adminToken").value;
+    const historyBox = document.getElementById("historyList");
+
+    if (!adminToken) {
+        alert("请输入管理员 Token");
+        return;
+    }
+
+    try {
+        historyBox.innerHTML = "正在加载历史记录...";
+        const res = await fetch("/ai/log/history", {
+            method: "GET",
+            headers: {
+                "X-Admin-Token": adminToken
+            }
+        });
+
+        const data = await handleResponse(res);
+
+        if (!data.history_list || data.history_list.length === 0) {
+            historyBox.innerHTML = "暂无历史记录";
+            return;
+        }
+
+        historyBox.innerHTML = "";
+
+        data.history_list.forEach(item => {
+            const div = document.createElement("div");
+            div.innerHTML = `
+                <p>文件名：${item.filename}</p>
+                <p>时间：${item.created_at}</p>
+                <button onclick="showHistoryDetail('${item.id}')">查看详情</button>
+                <hr>
+            `;
+            historyBox.appendChild(div);
+        });
+    } catch (error) {
+        historyBox.innerHTML = "加载失败：" + error.message;
+    }
+}
+
+        async function showHistoryDetail(historyId) {
+    const adminToken = document.getElementById("adminToken").value;
+    const resultBox = document.getElementById("result");
+
+    try {
+        resultBox.textContent = "正在加载详情...";
+        const res = await fetch(`/ai/log/history/${historyId}`, {
+            method: "GET",
+            headers: {
+                "X-Admin-Token": adminToken
+            }
+        });
+
+        const data = await handleResponse(res);
+        resultBox.textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+        resultBox.textContent = "加载详情失败：" + error.message;
+    }
+}
 
         window.onload = function () {
             loadLogFiles();
